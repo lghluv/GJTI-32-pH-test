@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GJTI-32-pH | 커리어 솔루션 가이드</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;700;900&display=swap');
+        :root { --primary: #0f172a; --accent: #2563eb; --bg: #f1f5f9; --white: #ffffff; }
+        body { font-family: 'Pretendard', sans-serif; background-color: var(--bg); color: #334155; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        #app { background: var(--white); width: 90%; max-width: 500px; padding: 50px 30px; border-radius: 32px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1); text-align: center; }
+        .main-title { font-weight: 900; font-size: 2.5rem; color: var(--primary); margin: 0; letter-spacing: -2px; }
+        .sub-title { color: #64748b; margin-top: 12px; margin-bottom: 40px; font-size: 1rem; line-height: 1.6; word-break: keep-all; }
+        .progress-container { width: 100%; height: 8px; background: #e2e8f0; border-radius: 10px; margin-bottom: 45px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.4s ease; }
+        .question-box { min-height: 140px; display: flex; align-items: center; justify-content: center; margin-bottom: 40px; }
+        .question-text { font-size: 1.3rem; font-weight: 700; line-height: 1.5; color: var(--primary); word-break: keep-all; }
+        .slider-wrapper { margin: 50px 0 70px 0; }
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 10px; background: #cbd5e1; border-radius: 5px; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 32px; width: 32px; border-radius: 50%; background: var(--accent); margin-top: -11px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); cursor: pointer; border: 3px solid white; }
+        .slider-labels { display: flex; justify-content: space-between; margin-top: 20px; font-size: 0.95rem; color: #94a3b8; font-weight: 600; }
+        button { background: var(--primary); color: white; border: none; padding: 20px; border-radius: 18px; font-size: 1.2rem; font-weight: 800; cursor: pointer; width: 100%; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        button:hover { background: #1e293b; transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .result-code { font-size: 4.5rem; font-weight: 900; color: var(--accent); margin: 10px 0; letter-spacing: -4px; line-height: 1; }
+        .result-nickname { margin-bottom: 40px; }
+        .result-nickname .adj { font-size: 1.15rem; color: #64748b; display: block; margin-bottom: 10px; font-weight: 500; }
+        .result-nickname .substance { font-weight: 900; color: var(--primary); font-size: 2rem; border-bottom: 4px solid var(--accent); display: inline-block; padding-bottom: 4px; }
+        .result-card { text-align: left; background: #f8fafc; padding: 30px; border-radius: 24px; line-height: 1.8; font-size: 1.05rem; border: 1px solid #e2e8f0; }
+        .hidden { display: none; }
+        .strategy-title { font-weight: 800; color: var(--accent); display: block; margin-bottom: 12px; font-size: 1.1rem; }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div id="intro-screen">
+        <h1 class="main-title">GJTI-32-pH</h1>
+        <p class="sub-title">당신의 32가지 성격과 주관 농도:<br>사회생활 맞춤 가이드</p>
+        <button onclick="startTest()">나의 커리어 아키타입 확인</button>
+    </div>
+
+    <div id="test-screen" class="hidden">
+        <div class="progress-container"><div id="progress" class="progress-fill"></div></div>
+        <div class="question-box"><div id="question" class="question-text"></div></div>
+        <div class="slider-wrapper">
+            <input type="range" id="slider" min="1" max="100" value="50">
+            <div class="slider-labels"><span>그렇지 않다</span><span>매우 그렇다</span></div>
+        </div>
+        <button onclick="nextQuestion()">다음 단계로</button>
+    </div>
+
+    <div id="result-screen" class="hidden">
+        <p style="font-weight:700; color:#94a3b8; font-size:0.9rem; margin-bottom:5px;">나의 커리어 아키타입</p>
+        <div id="res-code" class="result-code"></div>
+        <div id="res-nickname" class="result-nickname">
+            <span class="adj" id="res-adj"></span>
+            <span class="substance" id="res-substance"></span>
+        </div>
+        <div id="res-desc" class="result-card"></div>
+        <button onclick="location.reload()" style="margin-top:30px; background:#f1f5f9; color:#475569;">테스트 다시하기</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        { q: "회의 도중 결정된 사안에 논리적 허점이 발견되면, 분위기가 가라앉더라도 즉시 언급한다.", type: "EI", inv: false },
+        { q: "업무 매뉴얼이 구체적이지 않을 때, 오히려 내 마음대로 창의력을 발휘할 수 있어 즐겁다.", type: "SN", inv: false }, // 2번 문항
+        { q: "동료의 실수를 발견했을 때 감정적인 위로보다는, 실질적인 복구 시나리오를 먼저 제시한다.", type: "TF", inv: false },
+        { q: "새로운 협업 툴을 도입할 때, 튜토리얼을 읽기보다 이것저것 눌러보며 직관적으로 익힌다.", type: "SN", inv: true },
+        { q: "갑작스러운 발표 제안이 들어오면 긴장하기보다 나를 보여줄 기회라는 생각에 아드레날린이 솟는다.", type: "EI", inv: false },
+        { q: "실패 확률이 있더라도 기존의 관행을 깨는 혁신적인 업무 방식을 제안하는 편이다.", type: "SN", inv: false },
+        { q: "상사가 추상적인 지시를 내렸을 때, 구체적인 예시를 되묻기보다 그 이면의 의도를 읽어낸다.", type: "SN", inv: false }, // 10번 문항
+        { q: "갈등 상황에서 '상대방의 기분'보다는 '조직의 명확한 원칙'이 무엇인지가 우선이다.", type: "TF", inv: false },
+        { q: "일정이 틀어지는 변수가 발생해도 스트레스 받기보다 상황에 맞춰 우선순위를 재설정하는 게 즐겁다.", type: "JP", inv: false },
+        { q: "피드백을 받을 때 지적된 '팩트'보다 나를 대하는 상대방의 '어조'가 더 깊게 남는다.", type: "TF", inv: true },
+        { q: "마감 직전의 팽팽한 긴장감이 있을 때 오히려 업무 몰입도가 최고조로 올라간다.", type: "JP", inv: false }, // 21번 문항
+        { q: "성과 보상은 팀 전체의 화합보다 개인의 기여도에 따라 철저하게 차등 지급되어야 한다.", type: "TF", inv: false }, // 22번 문항
+        { q: "낯선 업체와의 미팅 자리에서 흐르는 침묵을 견디지 못하고 먼저 화두를 던지는 편이다.", type: "EI", inv: false },
+        { q: "보고서를 작성할 때 미세한 오타 교정보다는 전체적인 비즈니스 임팩트를 강조하는 데 힘을 쏟는다.", type: "SN", inv: false },
+        { q: "내 업무용 폴더는 언제나 정해진 네이밍 규칙에 따라 완벽하게 아카이빙되어 있다.", type: "JP", inv: true },
+        { q: "오늘 할 일을 다 끝내지 못하면 퇴근 후 사생활 시간에도 자꾸 업무 생각이 난다.", type: "JP", inv: true }
+    ];
+
+    const substanceMap = { 1: "위산", 2: "레몬", 3: "식초", 4: "토마토", 5: "블랙커피", 6: "우유", 7: "증류수", 8: "베이킹소다", 9: "치약", 10: "비눗물", 11: "암모니아", 12: "표백제", 13: "오븐세정제", 14: "수산화나트륨" };
+
+    // 32가지 고유 데이터 (CD + MBTI 조합)
+    const typeData = {
+        "CESTJ": { adj: "거침없이 돌진하는 효율의 화신", guide: "결론부터 말하는 화법은 좋으나 동료의 '맥락'을 경청하는 태도를 갖추면 리더십이 완성됩니다." },
+        "CESTP": { adj: "위기를 기회로 바꾸는 실전 해결사", guide: "현장 장악력은 최고입니다. 다만, 단기 성과에 매몰되지 않도록 주간 단위의 계획을 세워보세요." },
+        "CENTJ": { adj: "판을 설계하고 주도하는 야심찬 전략가", guide: "비전 제시는 훌륭하지만 동료들이 따라올 수 있는 구체적인 가이드라인을 함께 주는 것이 필요합니다." },
+        "CENTP": { adj: "고정관념을 파괴하는 창의적 논쟁가", guide: "아이디어는 무궁무진하나 마무리가 약할 수 있습니다. 마감 기한을 스스로 2일 앞당겨 설정해보세요." },
+        "CESFJ": { adj: "조직의 결속을 다지는 헌신적인 관리자", guide: "화합을 중시하느라 쓴소리를 아끼지 마세요. 명확한 피드백이 때로는 진정한 도움입니다." },
+        "CESFP": { adj: "사무실의 활력을 불어넣는 긍정 전파자", guide: "즉흥적인 대처가 뛰어나지만 감정적인 판단에 휩쓸리지 않도록 데이터 확인 습관을 기르세요." },
+        "CENFJ": { adj: "사람의 마음을 움직이는 선동적 이념가", guide: "모두를 이끌려는 책임감이 과할 수 있습니다. 각자의 역할을 믿고 권한을 위임하는 연습을 하세요." },
+        "CENFP": { adj: "불가능을 가능케 하는 열정적인 이상가", guide: "에너지가 분산되기 쉽습니다. 오늘 가장 중요한 일 '딱 3개'만 정해서 끝내는 훈련이 필요합니다." },
+        "CISTJ": { adj: "정석대로 결과를 만드는 원칙주의자", guide: "안정성은 최고이나 변화에 거부감이 큽니다. 매주 하나씩 새로운 시도를 해보며 유연성을 기르세요." },
+        "CISTP": { adj: "조용히 문제를 해결하는 실무의 달인", guide: "독자적인 해결 능력은 좋으나 팀과의 공유가 부족합니다. 진행 상황을 텍스트로라도 자주 공유하세요." },
+        "CINTJ": { adj: "가장 높은 곳을 바라보는 냉철한 분석가", guide: "자신의 기준이 매우 높습니다. 타인의 실수를 비난하기보다 성장을 돕는 멘토링 방식을 택해보세요." },
+        "CINTP": { adj: "본질을 꿰뚫어보는 고독한 탐구자", guide: "이론적인 완벽주의에 빠지기 쉽습니다. '완벽'보다 '완성'에 초점을 맞추어 결과물을 내보세요." },
+        "CISFJ": { adj: "묵묵히 뒤에서 받쳐주는 신뢰의 수호자", guide: "자신의 성과를 드러내는 것을 어려워합니다. 보고 시 자신이 기여한 수치를 명확히 밝히세요." },
+        "CISFP": { adj: "조화로운 감각을 지닌 섬세한 예술가", guide: "비판을 개인적인 거절로 받아들이지 마세요. 피드백은 사람이 아닌 '업무'에 대한 것입니다." },
+        "CINFJ": { adj: "깊은 통찰로 변화를 꿈꾸는 조용한 혁명가", guide: "복잡한 생각 때문에 행동이 늦어질 수 있습니다. 일단 실행하고 수정하는 Agile 방식을 도입하세요." },
+        "CINFP": { adj: "나만의 색깔로 업무를 재해석하는 몽상가", guide: "이상과 현실의 괴리에 지치기 쉽습니다. 실무적인 루틴을 단순화하여 멘탈을 관리하세요." },
+        "DESTJ": { adj: "데이터로 증명하는 신중한 지휘관", guide: "확신이 들 때까지 시간이 걸리나 실행은 빠릅니다. 결정 과정을 팀원들에게 투명하게 공유하세요." },
+        "DESTP": { adj: "관찰 후 결정타를 날리는 전략적 행동가", guide: "눈치가 빨라 기회를 잘 포착합니다. 기회 포착 후에는 끝까지 밀어붙이는 끈기를 더해보세요." },
+        "DENTJ": { adj: "모든 변수를 계산하는 치밀한 설계자", guide: "모든 위험을 통제하려 하면 지칩니다. 통제할 수 없는 변수는 과감히 수용하는 연습을 하세요." },
+        "DENTP": { adj: "새로운 가설을 검증하는 신중한 실험가", guide: "말보다 결과물로 보여주는 스타일입니다. 추진력을 얻기 위해 자신의 아이디어를 더 강력히 어필하세요." },
+        "DESFJ": { adj: "상대방의 니즈를 정확히 읽는 세심한 조력자", guide: "타인의 부탁을 거절하지 못해 번아웃이 올 수 있습니다. 업무의 우선순위를 정해 단호해지세요." },
+        "DESFP": { adj: "관객의 반응을 살피는 유연한 퍼포머", guide: "분위기에 잘 적응하지만 중심을 잃기 쉽습니다. 자신만의 주관을 세우는 명상이나 일기를 추천합니다." },
+        "DENFJ": { adj: "조직의 조화를 면밀히 살피는 따뜻한 리더", guide: "모두를 만족시키려다 결정을 내리지 못할 수 있습니다. 때로는 다수결보다 단호한 리더십이 필요합니다." },
+        "DENFP": { adj: "가능성을 신중하게 탐색하는 자유로운 영혼", guide: "호기심이 많아 업무가 방대해질 수 있습니다. 프로젝트의 범위를 좁히고 깊이를 더하는 데 집중하세요." },
+        "DISTJ": { adj: "한 치의 오차도 허용하지 않는 완벽 실무자", guide: "검토 시간이 너무 깁니다. 90% 정도 완성되었다면 일단 공유하여 피드백을 받는 것이 빠릅니다." },
+        "DISTP": { adj: "효율을 극대화하는 냉정한 테크니션", guide: "필요한 말만 하는 경향이 있습니다. 팀원들과의 정기적인 티타임이 의외의 업무 힌트를 줄 것입니다." },
+        "DINTJ": { adj: "거대한 시스템을 이해하는 은둔형 책략가", guide: "혼자 하는 것이 편하겠지만, 협업을 통해 시너지를 내는 법을 배워야 큰 프로젝트를 맡을 수 있습니다." },
+        "DINTP": { adj: "논리의 빈틈을 찾아내는 지적 사냥꾼", guide: "상대방의 논리를 반박하기보다 대안을 제시하는 쪽으로 에너지를 써보세요. 훨씬 환영받을 것입니다." },
+        "DISFJ": { adj: "기억력과 세심함으로 무장한 오피스 서포터", guide: "작은 디테일에 집착해 큰 그림을 놓칠 수 있습니다. 전체 일정표를 수시로 확인하며 밸런스를 잡으세요." },
+        "DISFP": { adj: "나만의 리듬으로 업무를 소화하는 관찰자", guide: "속도가 느리다는 오해를 받을 수 있습니다. 작업 과정을 단계별로 공유해 진행 중임을 알리세요." },
+        "DINFJ": { adj: "타인의 성장을 돕는 사려 깊은 가이드", guide: "너무 깊은 공감은 감정 소모를 부릅니다. 업무와 감정을 분리하는 자신만의 경계선을 설정하세요." },
+        "DINFP": { adj: "감춰진 가치를 발견하는 섬세한 통찰가", guide: "자신의 가치관과 부딪히는 업무에 스트레스를 많이 받습니다. 업무의 의미를 스스로 재정의해보세요." }
+    };
+
+    let currentIdx = 0, scores = { EI: 0, SN: 0, TF: 0, JP: 0 }, totalVal = 0, rTimes = [], qStart;
+
+    function startTest() { document.getElementById('intro-screen').classList.add('hidden'); document.getElementById('test-screen').classList.remove('hidden'); showQ(); }
+    function showQ() { 
+        document.getElementById('question').innerText = questions[currentIdx].q;
+        document.getElementById('progress').style.width = (currentIdx / questions.length * 100) + '%';
+        document.getElementById('slider').value = 50; qStart = Date.now();
+    }
+    function nextQuestion() {
+        rTimes.push(Date.now() - qStart);
+        let val = parseInt(document.getElementById('slider').value);
+        totalVal += val;
+        let s = questions[currentIdx].inv ? (100 - val) : val;
+        scores[questions[currentIdx].type] += s;
+        if (++currentIdx < questions.length) showQ(); else showResult();
+    }
+
+    function showResult() {
+        document.getElementById('test-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.remove('hidden');
+        const avgRT = rTimes.reduce((a,b)=>a+b)/rTimes.length;
+        const CD = (avgRT < 3400) ? "C" : "D";
+        const mbti = [(scores.EI/400>0.5?"E":"I"),(scores.SN/400>0.5?"S":"N"),(scores.TF/400>0.5?"T":"F"),(scores.JP/400>0.5?"J":"P")].join('');
+        const ph = Math.max(1, Math.min(14, Math.round((totalVal/(questions.length*100))*13 + 1)));
+        const finalCode = CD + mbti;
+        
+        document.getElementById('res-code').innerText = `${finalCode}-${ph}`;
+        document.getElementById('res-adj').innerText = typeData[finalCode].adj;
+        document.getElementById('res-substance').innerText = substanceMap[ph];
+        document.getElementById('res-desc').innerHTML = `<span class="strategy-title">🚀 실전 커리어 솔루션</span>${typeData[finalCode].guide}`;
+    }
+</script>
+</body>
+</html>
